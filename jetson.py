@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 import serial
 import time
+import communication
+
+comm = communication.Communication()
 
 class MecanumLightSeeker:
     def __init__(self):
@@ -141,13 +144,16 @@ class MecanumLightSeeker:
         
         return vx, vy, omega
 
-    def send_mecanum_command(self, fl, fr, bl, br):
-        """
-        Send command to Arduino with four wheel speeds
-        Format: "FLxxxFRxxxBLxxxBRxxx\n"
-        """
-        command = "FL{:03d}FR{:03d}BL{:03d}BR{:03d}\n".format(int(fl),int(fr),int(bl),int(br))
-        self.arduino.write(command.encode())
+    # def send_mecanum_command(self, fl, fr, bl, br):
+    #     """
+    #     Send command to Arduino with four wheel speeds
+    #     Format: "FLxxxFRxxxBLxxxBRxxx\n"
+    #     """
+    #     command = "FL{:03d}FR{:03d}BL{:03d}BR{:03d}\n".format(int(fl),int(fr),int(bl),int(br))
+    #     self.arduino.write(command.encode())
+
+    def send_chassis_command(self, vx, vy, wz):
+        pass
 
     def run(self):
         try:
