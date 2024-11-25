@@ -22,6 +22,7 @@ class CarDataVisualizer:
         
         self.setup_gui()
         self.running = False
+        self.comm = None
         
     def setup_gui(self):
         # Create main frames
@@ -63,79 +64,35 @@ class CarDataVisualizer:
         for i, (label_text, var) in enumerate(labels):
             ttk.Label(info_frame, text=label_text).grid(row=i, column=0, sticky='e', padx=5, pady=3)
             ttk.Label(info_frame, textvariable=var).grid(row=i, column=1, sticky='w', padx=5, pady=3)
+
+    def set_communication(self, comm):
+        self.comm = comm
     
     def start_program(self):
         if not self.running:
             self.running = True
             self.start_button.state(['disabled'])
-            self.program_thread = threading.Thread(target=self.run_main_program)
-            self.program_thread.start()
+            self.update_thread = threading.Thread(target=self.update_data)
+            self.update_thread.start()
             
     def stop_program(self):
         self.running = False
         self.start_button.state(['!disabled'])
         self.state_var.set("Stopped")
     
-    def update_data(self, comm):
+    def update_data(self):
         """Update the display with current data"""
-        if not self.running:
-            return
+        while self.running and self.comm:
+            self.velocity_x.set(f"{self.comm.chassis_cmd.vx}")
+            self.velocity_y.set(f"{self.comm.chassis_cmd.vy}")
+            self.angular_velocity.set(f"{self.comm.chassis_cmd.wz}")
+            self.distance.set(f"{self.comm.sensor_info.distance_mm}")
+            self.angle_z.set(f"{self.comm.sensor_info.angleZ}")
+            self.op_mode.set(f"{self.comm.chassis_cmd.op_mode}")
+            self.is_holding.set(f"{self.comm.sensor_info.is_holding}")
+            self.follow_state.set(f"{self.comm.chassis_info.follow_state}")
             
-        self.velocity_x.set(f"{comm.chassis_cmd.vx}")
-        self.velocity_y.set(f"{comm.chassis_cmd.vy}")
-        self.angular_velocity.set(f"{comm.chassis_cmd.wz}")
-        self.distance.set(f"{comm.sensor_info.distance_mm}")
-        self.angle_z.set(f"{comm.sensor_info.angleZ}")
-        self.op_mode.set(f"{comm.chassis_cmd.op_mode}")
-        self.is_holding.set(f"{comm.sensor_info.is_holding}")
-        self.follow_state.set(f"{comm.chassis_info.follow_state}")
-        
-        self.root.update()
-    
-    def run_main_program(self):
-        try:
-            # Import your required modules here
-            from communication import Communication
-            from detectnet import detectPlane
-            from light_seeker import MecanumLightSeeker
-            
-            ports = Communication.detect_ports()
-            port = ports["CP2102 USB to UART Bridge Controller - CP2102 USB to UART Bridge Controller"]
-            
-            comm = Communication(port)
-            comm.start()
-            
-            detect_plane = detectPlane()
-            detect_light = MecanumLightSeeker()
-            
-            state = "IDLE"
-            self.state_var.set(state)
-            
-            while self.running:
-                # Your existing main program logic here
-                # Update state and data periodically
-                self.state_var.set(state)
-                self.update_data(comm)
-                
-                # Rest of your main program logic...
-                time.sleep(0.1)
-                
-        except Exception as e:
-            self.state_var.set(f"Error: {str(e)}")
-        finally:
-            # Cleanup
-            if 'detect_plane' in locals():
-                detect_plane.stop()
-            if 'detect_light' in locals():
-                detect_light.stop()
-            if 'comm' in locals():
-                comm.stop()
+            time.sleep(0.1)
 
-def start_visualization():
-    root = tk.Tk()
-    app = CarDataVisualizer(root)
-    root.mainloop()
-
-if __name__ == "__main__":
-    start_visualization()
-
+    def update_state(self, state):
+        self.state_var.set(state)
